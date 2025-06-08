@@ -10,63 +10,6 @@ import tempfile
 import base64
 import sqlite3
 
-# Dictionary of common Icelandic noun endings and their base forms
-NOUN_ENDINGS = {
-    # Singular
-    'inn': 'i',      # masculine definite
-    'inum': 'i',     # masculine dative definite
-    'ins': 'i',      # masculine genitive definite
-    'in': 'i',       # feminine definite
-    'ina': 'i',      # feminine accusative definite
-    'inni': 'i',     # feminine dative definite
-    'innar': 'i',    # feminine genitive definite
-    'ið': 'i',       # neuter definite
-    'inu': 'i',      # neuter dative definite
-    'ins': 'i',      # neuter genitive definite
-    
-    # Plural
-    'arnir': 'i',    # masculine nominative plural definite
-    'ana': 'i',      # masculine accusative plural definite
-    'unum': 'i',     # masculine dative plural definite
-    'anna': 'i',     # masculine genitive plural definite
-    'irnar': 'i',    # feminine nominative plural definite
-    'unum': 'i',     # feminine dative plural definite
-    'anna': 'i',     # feminine genitive plural definite
-    'in': 'i',       # neuter nominative plural definite
-    'unum': 'i',     # neuter dative plural definite
-    'anna': 'i',     # neuter genitive plural definite
-    
-    # Common case endings
-    'ar': '',        # genitive singular or nominative plural
-    'um': 'ur',      # dative plural
-    'a': 'i',        # accusative plural
-    'u': 'a',        # dative singular
-    'i': 'ur',       # dative singular
-}
-
-# Dictionary of common Icelandic verb endings and their infinitive forms
-VERB_ENDINGS = {
-    # Present tense
-    'a': 'a',        # 1st person plural
-    'ar': 'a',       # 2nd/3rd person singular
-    'um': 'a',       # 1st person plural
-    'ið': 'a',       # 2nd person plural
-    'ir': 'a',       # 3rd person plural
-    
-    # Past tense
-    'aði': 'a',      # 1st/3rd person singular
-    'aðir': 'a',     # 2nd person singular
-    'uðum': 'a',     # 1st person plural
-    'uðuð': 'a',     # 2nd person plural
-    'uðu': 'a',      # 3rd person plural
-    
-    # Strong verbs past tense (examples)
-    'ók': 'aka',     # drive
-    'fór': 'fara',   # go
-    'kom': 'koma',   # come
-    'tók': 'taka',   # take
-}
-
 def init_db():
     """
     Initialize the SQLite database for caching sign images

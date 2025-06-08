@@ -17,8 +17,10 @@ This script processes Icelandic text and displays corresponding sign language im
 ```
 python3 -m venv venv
 source venv/bin/activate
-pip install requests beautifulsoup4 pillow
+pip install requests beautifulsoup4 pillow reynir
 ```
+
+Note: The Reynir library is optional but recommended for better Icelandic word processing. If not installed, the script will fall back to a rule-based approach.
 
 ## Usage
 
