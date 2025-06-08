@@ -129,14 +129,70 @@ def cache_image(word, image_data):
 
 def process_icelandic_word(word):
     """
-    Process an Icelandic word to its dictionary form.
-    This is a simplified implementation that attempts to handle common cases.
+    Process an Icelandic word to its dictionary form using Reynir.
+    Falls back to rule-based approach if Reynir is not available.
+    Special handling for question words.
     """
-    # Remove punctuation and lowercase
-    clean_word = re.sub(r'[^\w\s]', '', word).lower()
+    # Special handling for question words
+    question_words = {
+        "hvað": "hvað",
+        "hvaða": "hvað",
+        "hver": "hver",
+        "hvers": "hver",
+        "hverjum": "hver",
+        "hverjir": "hver",
+        "hverjar": "hver",
+        "hvar": "hvar",
+        "hvernig": "hvernig"
+    }
+    
+    # Remove punctuation for lookup
+    clean_word_lower = re.sub(r'[^\w\s]', '', word).lower()
+    
+    # Check if it's a question word
+    if clean_word_lower in question_words:
+        return question_words[clean_word_lower]
+    
+    try:
+        from reynir import Reynir
+        
+        # Remove punctuation but keep the original word for processing
+        clean_word = re.sub(r'[^\w\s]', '', word)
+        
+        if not clean_word:
+            return word
+        
+        # Initialize Reynir (only done once)
+        if not hasattr(process_icelandic_word, 'reynir'):
+            process_icelandic_word.reynir = Reynir()
+        
+        # Parse the word to get its lemma (dictionary form)
+        sent = process_icelandic_word.reynir.parse_single(clean_word)
+        
+        if sent and sent.tree and len(sent.terminals) > 0:
+            # Get the lemma of the word
+            lemma = sent.terminals[0].lemma
+            return lemma
+        
+        # Fall back to rule-based approach if parsing fails
+        print(f"Reynir parsing failed for '{word}', falling back to rule-based approach")
+        return _rule_based_process(clean_word, word)
+        
+    except ImportError:
+        print("Reynir not installed. Install with: pip install reynir")
+        return _rule_based_process(word, word)
+    except Exception as e:
+        print(f"Error processing word with Reynir: {e}")
+        return _rule_based_process(word, word)
+
+def _rule_based_process(clean_word, original_word):
+    """
+    Fallback rule-based approach for processing Icelandic words.
+    """
+    clean_word = clean_word.lower()
     
     if not clean_word:
-        return word
+        return original_word
     
     # Try to find matching verb endings
     for ending, base in VERB_ENDINGS.items():
