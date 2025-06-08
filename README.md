@@ -2,7 +2,7 @@
 
 This script processes Icelandic text and displays corresponding sign language images from SignWiki.is.
 
-## Features
+## Features 
 
 - Processes Icelandic words to their dictionary/infinitive forms
 - Fetches sign language images from SignWiki.is
