@@ -7,7 +7,8 @@ from PIL import Image
 import io
 import os
 import tempfile
-import subprocess
+import base64
+import sqlite3
 
 # Dictionary of common Icelandic noun endings and their base forms
 NOUN_ENDINGS = {
@@ -66,6 +67,66 @@ VERB_ENDINGS = {
     'tók': 'taka',   # take
 }
 
+def init_db():
+    """
+    Initialize the SQLite database for caching sign images
+    """
+    conn = sqlite3.connect('signwiki.is.db')
+    cursor = conn.cursor()
+    
+    # Create table if it doesn't exist
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS signcache (
+        ord TEXT PRIMARY KEY,
+        base64 TEXT NOT NULL
+    )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def get_cached_image(word):
+    """
+    Get an image from the cache if it exists
+    """
+    conn = sqlite3.connect('signwiki.is.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT base64 FROM signcache WHERE ord = ?', (word,))
+    result = cursor.fetchone()
+    
+    conn.close()
+    
+    if result:
+        print(f"Using cached image for '{word}'")
+        return base64.b64decode(result[0])
+    
+    return None
+
+def cache_image(word, image_data):
+    """
+    Cache an image in the database
+    """
+    if not image_data:
+        return
+    
+    # Convert image data to base64
+    image_base64 = base64.b64encode(image_data).decode('ascii')
+    
+    conn = sqlite3.connect('signwiki.is.db')
+    cursor = conn.cursor()
+    
+    # Insert or replace the image
+    cursor.execute(
+        'INSERT OR REPLACE INTO signcache (ord, base64) VALUES (?, ?)',
+        (word, image_base64)
+    )
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"Cached image for '{word}'")
+
 def process_icelandic_word(word):
     """
     Process an Icelandic word to its dictionary form.
@@ -96,8 +157,14 @@ def process_icelandic_word(word):
 
 def fetch_signwiki_image(word):
     """
-    Fetch the image for a word from signwiki.is
+    Fetch the image for a word from signwiki.is or from cache
     """
+    # Check cache first
+    cached_image = get_cached_image(word)
+    if cached_image:
+        return cached_image
+    
+    # If not in cache, fetch from web
     url = f"https://signwiki.is/index.php/{word}"
     
     try:
@@ -124,7 +191,12 @@ def fetch_signwiki_image(word):
             img_response = requests.get(img_url)
             img_response.raise_for_status()
             
-            return img_response.content
+            image_data = img_response.content
+            
+            # Cache the image
+            cache_image(word, image_data)
+            
+            return image_data
         else:
             print(f"No image found for '{word}'")
             return None
@@ -173,8 +245,10 @@ def display_image_in_terminal(image_data, word):
             image_bytes = output.getvalue()
         
         # Encode image in base64
-        import base64
         image_base64 = base64.b64encode(image_bytes).decode('ascii')
+        
+        # Print link to the word page
+        print(f"Word page: https://signwiki.is/index.php/{word}")
         
         # Use iTerm2's inline image protocol
         sys.stdout.write(f"\033]1337;File=inline=1:{image_base64}\a\n")
@@ -184,6 +258,7 @@ def display_image_in_terminal(image_data, word):
         print(f"Error displaying image: {e}")
         # Fallback to opening the image
         print(f"Opening image in default viewer...")
+        import subprocess
         if sys.platform == 'darwin':  # macOS
             subprocess.call(['open', temp_path])
         elif sys.platform == 'win32':  # Windows
@@ -192,6 +267,9 @@ def display_image_in_terminal(image_data, word):
             subprocess.call(['xdg-open', temp_path])
 
 def main():
+    # Initialize the database
+    init_db()
+    
     if len(sys.argv) < 2:
         print("Usage: python main.py \"Icelandic sentence here\"")
         sys.exit(1)
